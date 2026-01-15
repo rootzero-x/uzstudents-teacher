@@ -1,4 +1,6 @@
-const BASE = "/tapi/uzstudents/api/teacher";
+const BASE =
+  import.meta.env.VITE_TEACHER_API_BASE ||
+  "https://694fc8f1e1918.myxvest1.ru/uzstudents/api/teacher";
 
 async function req(path, options = {}) {
   const r = await fetch(`${BASE}${path}`, {

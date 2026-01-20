@@ -654,7 +654,6 @@ export default function AssignmentsSection({ groupId }) {
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2">
-                      <Chip>#{a.id}</Chip>
                       <button
                         onClick={() => openSubs(a.id)}
                         className="rounded-xl border border-white/12 bg-white/[0.04] px-4 py-2 text-xs font-semibold text-slate-100 transition hover:bg-white/[0.07]"

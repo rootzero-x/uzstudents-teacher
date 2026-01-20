@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { teacherApi } from "../../services/api/teacherApi";
+import { useIntervalWhenVisible } from "../../utils/useIntervalWhenVisible";
 
 function badge(text) {
   return (
@@ -19,22 +20,28 @@ export default function GroupsPage() {
   const [creating, setCreating] = useState(false);
   const [err, setErr] = useState("");
 
-  const load = async () => {
+  const load = async ({ silent = false } = {}) => {
     setErr("");
-    setLoading(true);
+    if (!silent) setLoading(true);
     try {
       const res = await teacherApi.groups();
       setGroups(res.groups || []);
     } catch (e) {
       setErr(e?.message || "Failed");
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
   useEffect(() => {
     load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // pending countlar “live” ko‘rinsin
+  useIntervalWhenVisible(() => load({ silent: true }), 10000, {
+    runOnFocus: true,
+  });
 
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase();
@@ -46,7 +53,7 @@ export default function GroupsPage() {
           .includes(s) ||
         String(g.code || "")
           .toLowerCase()
-          .includes(s)
+          .includes(s),
     );
   }, [groups, q]);
 
@@ -60,7 +67,7 @@ export default function GroupsPage() {
     try {
       await teacherApi.createGroup({ name: n });
       setName("");
-      await load();
+      await load({ silent: true });
     } catch (e2) {
       setErr(e2?.message || "Create failed");
     } finally {
@@ -98,7 +105,6 @@ export default function GroupsPage() {
         </div>
       )}
 
-      {/* Create */}
       <div className="rounded-3xl border border-white/10 bg-white/[0.05] p-6 shadow-[0_25px_70px_rgba(0,0,0,0.45)] backdrop-blur-xl">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -127,7 +133,6 @@ export default function GroupsPage() {
         </div>
       </div>
 
-      {/* List */}
       <div className="mt-6 grid gap-4 sm:grid-cols-2">
         {loading ? (
           Array.from({ length: 6 }).map((_, i) => (

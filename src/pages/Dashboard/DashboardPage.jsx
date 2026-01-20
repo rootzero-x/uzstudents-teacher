@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { teacherApi } from "../../services/api/teacherApi";
+import ToastLite from "../../components/ui/ToastLite";
+import { useIntervalWhenVisible } from "../../utils/useIntervalWhenVisible";
 
 function StatCard({ title, value, hint, to }) {
   const Card = (
@@ -20,37 +22,52 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [groups, setGroups] = useState([]);
   const [err, setErr] = useState("");
+  const [toast, setToast] = useState({ open: false, text: "" });
 
   const stats = useMemo(() => {
     const totalGroups = groups.length;
     const totalStudents = groups.reduce(
       (a, g) => a + (Number(g.students_count) || 0),
-      0
+      0,
     );
     const pending = groups.reduce(
       (a, g) => a + (Number(g.pending_count) || 0),
-      0
+      0,
     );
     return { totalGroups, totalStudents, pending };
   }, [groups]);
 
+  const load = async ({ silent = false } = {}) => {
+    if (!silent) setLoading(true);
+    setErr("");
+    try {
+      const res = await teacherApi.groups();
+      setGroups(res.groups || []);
+    } catch (e) {
+      setErr(e?.message || "Failed");
+    } finally {
+      if (!silent) setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    (async () => {
-      setErr("");
-      setLoading(true);
-      try {
-        const res = await teacherApi.groups();
-        setGroups(res.groups || []);
-      } catch (e) {
-        setErr(e?.message || "Failed");
-      } finally {
-        setLoading(false);
-      }
-    })();
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Dashboard ham o'zini yangilab tursin (pending ko'rinadi)
+  useIntervalWhenVisible(() => load({ silent: true }), 12000, {
+    runOnFocus: true,
+  });
 
   return (
     <div>
+      <ToastLite
+        open={toast.open}
+        text={toast.text}
+        onClose={() => setToast({ open: false, text: "" })}
+      />
+
       <div className="mb-6">
         <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">
           <span className="bg-gradient-to-r from-orange-300 via-amber-200 to-orange-200 bg-clip-text text-transparent">
@@ -110,6 +127,12 @@ export default function DashboardPage() {
             <Link
               to="/groups"
               className="rounded-2xl border border-white/12 bg-white/[0.04] px-5 py-2.5 text-sm font-semibold text-slate-100 transition hover:bg-white/[0.07]"
+              onClick={() =>
+                setToast({
+                  open: true,
+                  text: "Pending’lar Groups ichida ko‘rinadi ✅",
+                })
+              }
             >
               Pending →
             </Link>
